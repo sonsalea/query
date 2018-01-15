@@ -1,0 +1,426 @@
+CREATE TABLE trust (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX trust_ix ON trust( key );
+
+CREATE TABLE hospital (
+    id SERIAL,
+    trust_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( trust_id ) REFERENCES trust( id )
+);
+
+CREATE UNIQUE INDEX hospital_ix ON hospital( key );
+
+CREATE TABLE speciality (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX speciality_ix ON speciality( key );
+
+CREATE TABLE time_block (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    day_shift BOOLEAN NOT NULL,
+    night_shift BOOLEAN NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX time_block_ix ON time_block ( key );
+
+CREATE TABLE vacancy_reason (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX vacancy_reason_ix ON vacancy_reason ( key );
+
+CREATE TABLE cancel_reason (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX cancel_reason_ix ON cancel_reason ( key );
+
+CREATE TABLE employment_status (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX employment_status_ix ON employment_status( key );
+
+CREATE TABLE exam (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX exam_ix ON exam( key );
+
+CREATE TABLE grade (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    class TEXT NOT NULL,
+    seniority INTEGER NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX grade_ix ON grade( key );
+
+CREATE TABLE document (
+    id SERIAL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX document_ix ON document( key );
+
+CREATE TABLE department (
+    id SERIAL,
+    hospital_id INTEGER NOT NULL,
+    speciality_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    timezone TEXT NOT NULL,
+    -- meta information fields
+    clinical_experience TEXT NULL,
+    handover_location TEXT NULL,
+    it_system TEXT NULL,
+    access_badge TEXT NULL,
+    timesheet TEXT NULL,
+    facilities TEXT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( hospital_id ) REFERENCES hospital( id ),
+    FOREIGN KEY( speciality_id ) REFERENCES speciality( id )
+);
+
+CREATE UNIQUE INDEX department_ix ON department( key );
+
+CREATE TABLE account (
+    id SERIAL,
+    email TEXT NOT NULL,
+    mobile TEXT NULL,
+    hash TEXT NULL,
+    api_key TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    profile_img_url TEXT NULL,
+    register_dt TIMESTAMP NOT NULL,
+    PRIMARY KEY( id )
+);
+
+CREATE UNIQUE INDEX account_email_ix ON account (
+    email
+);
+
+CREATE UNIQUE INDEX account_mobile_ix ON account (
+    mobile
+);
+
+CREATE UNIQUE INDEX account_api_key_ix ON account (
+    api_key
+);
+
+CREATE TABLE doctor (
+    id SERIAL,
+    account_id INTEGER NOT NULL,
+    grade_id INTEGER NULL,
+    speciality_id INTEGER NULL,
+    gmc_number TEXT NULL,
+    current_hospital_id INTEGER NULL,
+    employment_status_id INTEGER NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( account_id ) REFERENCES account( id ),
+    FOREIGN KEY( grade_id ) REFERENCES grade( id ),
+    FOREIGN KEY( speciality_id ) REFERENCES speciality( id ),
+    FOREIGN KEY( current_hospital_id ) REFERENCES hospital( id ),
+    FOREIGN KEY( employment_status_id ) REFERENCES employment_status( id )
+);
+
+CREATE UNIQUE INDEX doctor_ix ON doctor( 
+    account_id 
+);
+
+CREATE TABLE doctor_document (
+    id SERIAL,
+    doctor_id INTEGER NOT NULL,
+    document_id INTEGER NOT NULL,
+    file_key TEXT NULL,
+    expiry_dt TIMESTAMP NULL,
+    verify_dt TIMESTAMP NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( doctor_id ) REFERENCES doctor( id ),
+    FOREIGN KEY( document_id ) REFERENCES document( id )
+);
+
+CREATE UNIQUE INDEX doctor_document_ix ON doctor_document(
+    doctor_id, 
+    document_id 
+);
+
+CREATE TABLE doctor_exam (
+    id SERIAL,
+    doctor_id INTEGER NOT NULL,
+    exam_id INTEGER NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( doctor_id ) REFERENCES doctor( id ),
+    FOREIGN KEY( exam_id ) REFERENCES exam( id )
+);
+
+CREATE UNIQUE INDEX doctor_exam_ix ON doctor_exam (
+    doctor_id, 
+    exam_id
+);
+
+CREATE TABLE locum (
+    id SERIAL,
+    account_id INTEGER NOT NULL,
+    instant_pay BOOLEAN NOT NULL,
+    mute BOOLEAN NOT NULL,
+    original_department_id INTEGER NOT NULL,
+    welcome_remind_dt TIMESTAMP NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( account_id ) REFERENCES account( id ),
+    FOREIGN KEY( original_department_id ) REFERENCES department( id )
+);
+
+CREATE UNIQUE INDEX locum_ix ON locum ( 
+    account_id 
+);
+
+CREATE TABLE locum_availability (
+    id SERIAL,
+    locum_id INTEGER NOT NULL,
+    epoch_day INTEGER NOT NULL,
+    time_block_id INTEGER NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( locum_id ) REFERENCES locum( id ),
+    FOREIGN KEY( time_block_id ) REFERENCES time_block( id )
+);
+
+CREATE UNIQUE INDEX locum_availability_ix ON locum_availability ( 
+    locum_id, 
+    epoch_day,
+    time_block_id
+);
+
+
+CREATE TABLE staff_bank_member (
+    id SERIAL,
+    trust_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    expiry_dt TIMESTAMP NULL,
+    amnesty BOOLEAN NOT NULL,
+    assignment_code TEXT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( trust_id ) REFERENCES trust( id ),
+    FOREIGN KEY( locum_id ) REFERENCES locum( id )
+);
+
+CREATE UNIQUE INDEX staff_bank_member_ix ON staff_bank_member ( 
+    trust_id, 
+    locum_id 
+);
+
+CREATE TABLE coordinator (
+    id SERIAL,
+    account_id INTEGER NOT NULL,
+    job_title TEXT NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( account_id ) REFERENCES account( id )
+);
+
+CREATE UNIQUE INDEX coordinator_ix ON coordinator( 
+    account_id 
+);
+
+CREATE TABLE department_coordinator (
+    id SERIAL,
+    department_id INTEGER NOT NULL,
+    coordinator_id INTEGER NOT NULL,
+    mute BOOLEAN NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( department_id ) REFERENCES department( id ),
+    FOREIGN KEY( coordinator_id ) REFERENCES coordinator( id )
+);
+
+CREATE UNIQUE INDEX department_coordinator_ix ON department_coordinator ( 
+    department_id, 
+    coordinator_id 
+);
+
+CREATE TABLE department_invite (
+    id SERIAL,
+    department_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    invite_dt TIMESTAMP NOT NULL,
+    withdraw_dt TIMESTAMP NULL,
+    decline_dt TIMESTAMP NULL,
+    consume_dt TIMESTAMP NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( department_id ) REFERENCES department( id ),
+    FOREIGN KEY( locum_id ) REFERENCES locum( id )
+);
+
+CREATE UNIQUE INDEX department_invite_ix ON department_invite ( 
+    ( CASE WHEN decline_dt IS NOT NULL OR withdraw_dt IS NOT NULL OR consume_dt IS NOT NULL THEN NULL ELSE 1 END ),
+    department_id, 
+    locum_id
+);
+
+CREATE TABLE department_member (
+    id SERIAL,
+    department_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    apply_dt TIMESTAMP NOT NULL,
+    confirm_dt TIMESTAMP NULL,
+    withdraw_dt TIMESTAMP NULL,
+    decline_dt TIMESTAMP NULL,
+    mute BOOLEAN NOT NULL,
+    worked_before BOOLEAN NOT NULL,
+    auto_offer BOOLEAN NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( department_id ) REFERENCES department( id ),
+    FOREIGN KEY( locum_id ) REFERENCES locum( id )
+); 
+
+CREATE UNIQUE INDEX department_member_ix ON department_member ( 
+    ( CASE WHEN decline_dt IS NOT NULL OR withdraw_dt IS NOT NULL THEN NULL ELSE 1 END ),
+    department_id, 
+    locum_id
+);
+
+CREATE TABLE shift (
+    id SERIAL,
+    department_id INTEGER NOT NULL,
+    vacancy_reason_id INTEGER NOT NULL,
+    start_dt TIMESTAMP NOT NULL,
+    end_dt TIMESTAMP NOT NULL,
+    epoch_day INTEGER NOT NULL,
+    time_block_id INTEGER NOT NULL,
+    post_dt TIMESTAMP NOT NULL,
+    min_grade_id INTEGER NOT NULL,
+    hourly_rate INTEGER NOT NULL,
+    additional_info TEXT NULL,
+    instant_pay BOOLEAN NOT NULL,
+    cancel_dt TIMESTAMP NULL,
+    cancel_reason_id INTEGER NULL,
+    -- key constraints.
+    PRIMARY KEY( id ),
+    FOREIGN KEY( department_id ) REFERENCES department( id ),
+    FOREIGN KEY( min_grade_id ) REFERENCES grade( id ),
+    FOREIGN KEY( time_block_id ) REFERENCES time_block( id ),
+    FOREIGN KEY( vacancy_reason_id ) REFERENCES vacancy_reason( id ),
+    FOREIGN KEY( cancel_reason_id ) REFERENCES cancel_reason( id ),
+
+    CHECK ( ( cancel_dt IS NULL ) = ( cancel_reason_id  IS NULL) )
+);
+
+CREATE TABLE shift_contract (
+    id SERIAL,
+    shift_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    offer_dt TIMESTAMP NOT NULL,
+    confirm_dt TIMESTAMP NULL,
+    withdraw_dt TIMESTAMP NULL,
+    withdraw_reason TEXT NULL,
+    decline_dt TIMESTAMP NULL,
+    decline_reason TEXT NULL,
+    remind_dt TIMESTAMP NULL,
+    instant_pay BOOLEAN NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( shift_id ) REFERENCES shift( id ),
+    FOREIGN KEY( locum_id ) REFERENCES locum( id ),
+
+    CHECK ( (decline_dt IS NULL ) = (decline_reason IS NULL) ),
+    CHECK ( (withdraw_dt IS NULL ) = (withdraw_reason IS NULL) )
+);
+
+CREATE UNIQUE INDEX shift_contract_ix ON shift_contract ( 
+    ( CASE WHEN decline_dt IS NOT NULL OR withdraw_dt IS NOT NULL THEN NULL ELSE 1 END ),
+    shift_id 
+);
+
+CREATE TABLE shift_suggestion (
+    id SERIAL,
+    shift_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    suggest_dt TIMESTAMP NULL,
+    summary_suggest_dt TIMESTAMP NULL,
+    urgent_suggest_dt TIMESTAMP NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( shift_id ) REFERENCES shift( id ) ON DELETE CASCADE,
+    FOREIGN KEY( locum_id ) REFERENCES locum( id )
+);
+
+CREATE UNIQUE INDEX shift_suggestion_ix ON shift_suggestion ( 
+    shift_id, 
+    locum_id 
+);
+
+CREATE TABLE shift_application (
+    id SERIAL,
+    shift_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    apply_dt TIMESTAMP NOT NULL,
+    withdraw_dt TIMESTAMP NULL,
+    decline_dt TIMESTAMP NULL,
+    decline_reason TEXT NULL,
+    consume_dt TIMESTAMP NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( shift_id ) REFERENCES shift( id ),
+    FOREIGN KEY( locum_id ) REFERENCES locum( id ),
+    CHECK ( (decline_dt IS NULL ) = (decline_reason IS NULL) )
+);
+
+CREATE UNIQUE INDEX shift_application_ix ON shift_application ( 
+    ( CASE WHEN decline_dt IS NOT NULL OR withdraw_dt IS NOT NULL OR consume_dt IS NOT NULL THEN NULL ELSE 1 END ),
+    shift_id, 
+    locum_id 
+);
+
+CREATE TABLE shift_star (
+    id SERIAL,
+    shift_id INTEGER NOT NULL,
+    locum_id INTEGER NOT NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( shift_id ) REFERENCES shift( id ) ON DELETE CASCADE,
+    FOREIGN KEY( locum_id ) REFERENCES locum( id )
+);
+
+CREATE UNIQUE INDEX starred_shift_ix ON shift_star ( 
+    shift_id, 
+    locum_id 
+);
+
+CREATE TABLE notification (
+    id SERIAL,
+    account_id INTEGER NOT NULL,
+    topic TEXT NOT NULL,
+    message TEXT NOT NULL,
+    href TEXT NULL,
+    notify_dt TIMESTAMP NOT NULL,
+    consume_dt TIMESTAMP NULL,
+    send_dt TIMESTAMP NULL,
+    PRIMARY KEY( id ),
+    FOREIGN KEY( account_id ) REFERENCES account( id ) 
+);
